@@ -10,6 +10,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.hadoop.util.GenericOptionsParser;
 
 public class LongestWordDriver extends Configured implements Tool {
 
@@ -20,7 +21,16 @@ public class LongestWordDriver extends Configured implements Tool {
     }
 
     public int run(String[] args) throws Exception {
-        Job job = Job.getInstance(getConf());
+
+        Configuration conf = getConf();
+        Job job = Job.getInstance(conf);
+
+        String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+        if (otherArgs.length != 2) {
+            System.err.println("Please, specify exactly two parameters: <in-file> <out-dir>");
+            System.exit(2);
+        }
+
         job.setJobName("LongestWordJob");
         job.setJarByClass(LongestWordDriver.class);
 
