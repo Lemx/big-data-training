@@ -8,9 +8,9 @@ import java.util.regex.Pattern;
 public class LongestWordMapper
         extends Mapper<Object, Text, IntWritable, Text> {
 
-    private IntWritable constantKey = new IntWritable(1);
+    private static final IntWritable constantKey = new IntWritable(0);
     private Text word = new Text();
-    private final static Pattern pattern = Pattern.compile("\\w+");
+    private static final Pattern pattern = Pattern.compile("\\w+");
 
     @Override
     public void map(Object key, Text value, Context context)

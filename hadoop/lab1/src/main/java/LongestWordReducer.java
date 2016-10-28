@@ -6,21 +6,23 @@ import java.io.IOException;
 public class LongestWordReducer
     extends Reducer<IntWritable, Text, IntWritable, Text> {
 
+    private static final IntWritable constantKey = new IntWritable(0);
+    private Text value = new Text();
+
     @Override
     public void reduce(IntWritable key, Iterable<Text> values, Context context)
             throws IOException, InterruptedException {
 
-        Text t = new Text("");
         Integer maxLen = -1;
         for (Text val : values) {
             String localWord = val.toString();
             Integer len = localWord.length();
             if (len > maxLen) {
-                t.set(localWord);
+                value.set(localWord);
                 maxLen = len;
             }
         }
 
-        context.write(new IntWritable(maxLen), t);
+        context.write(constantKey, value);
     }
 }
