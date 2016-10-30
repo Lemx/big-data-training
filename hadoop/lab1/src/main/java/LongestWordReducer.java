@@ -1,28 +1,33 @@
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.ReduceContext;
 import org.apache.hadoop.mapreduce.Reducer;
 import java.io.IOException;
+import java.util.Iterator;
 
 public class LongestWordReducer
     extends Reducer<IntWritable, Text, IntWritable, Text> {
 
-    private static final IntWritable constantKey = new IntWritable(0);
-    private Text value = new Text();
+    @Override
+    public void run(Context context)
+            throws IOException, InterruptedException {
+        this.setup(context);
+
+        try {
+            while(context.nextKey());
+            this.reduce(context.getCurrentKey(), context.getValues(), context);
+            Iterator iter = context.getValues().iterator();
+            if(iter instanceof ReduceContext.ValueIterator) {
+                ((ReduceContext.ValueIterator)iter).resetBackupStore();
+            }
+        } finally {
+            this.cleanup(context);
+        }
+    }
 
     @Override
     public void reduce(IntWritable key, Iterable<Text> values, Context context)
             throws IOException, InterruptedException {
-
-        Integer maxLen = -1;
-        for (Text val : values) {
-            String localWord = val.toString();
-            Integer len = localWord.length();
-            if (len > maxLen) {
-                value.set(localWord);
-                maxLen = len;
-            }
-        }
-
-        context.write(constantKey, value);
+        context.write(key, values.iterator().next()); // writing first longest word only
     }
 }

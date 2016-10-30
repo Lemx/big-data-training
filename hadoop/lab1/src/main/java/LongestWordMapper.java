@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 public class LongestWordMapper
         extends Mapper<Object, Text, IntWritable, Text> {
 
-    private static final IntWritable constantKey = new IntWritable(0);
+    private IntWritable length = new IntWritable();
     private Text word = new Text();
     private static final Pattern pattern = Pattern.compile("\\w+");
 
@@ -30,7 +30,8 @@ public class LongestWordMapper
 
         if (maxLen > 0) {
             word.set(longestWord);
-            context.write(constantKey, word);
+            length.set(maxLen);
+            context.write(length, word);
         }
     }
 }
