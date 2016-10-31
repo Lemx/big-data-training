@@ -50,6 +50,10 @@ public class HdfsApi {
                                     .limit(100)
                                     .collect(Collectors.toList());
 
+        if (fs.exists(outputFile)) {
+            fs.delete(outputFile, true);
+        }
+
         fs.createNewFile(outputFile);
         fs.setReplication(outputFile, (short)1);
         BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fs.append(outputFile)));
