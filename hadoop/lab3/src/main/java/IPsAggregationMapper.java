@@ -15,8 +15,6 @@ public class IPsAggregationMapper extends Mapper<Object, Text, Text, LongWritabl
     private static final String regex = "^(\\w+)\\s[\\w.-]+\\s[\\w.-]+\\s\\[.*\\]\\s\".*\"\\s\\d{3}\\s(\\d+|-)\\s\".*\"\\s\"(.*)\"$";
     private static final Pattern pattern = Pattern.compile(regex);
 
-
-
     @Override
     protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 
@@ -27,12 +25,26 @@ public class IPsAggregationMapper extends Mapper<Object, Text, Text, LongWritabl
         if (matcher.matches()) {
             ipString = matcher.group(1);
             String bytesString = matcher.group(2);
-            if (!bytes.equals("-")) { // skipping entries with no bytes transferred
+            if (!bytesString.equals("-")) { // skipping entries with no bytes
+                Browsers.KIND browser = getBrowser(matcher.group(3).toLowerCase());
+                context.getCounter(browser).increment(1);
                 bytesCount = Long.parseLong(bytesString);
                 ip.set(ipString);
                 this.bytes.set(bytesCount);
-                context.write(this.ip, this.bytes);
+                context.write(ip, bytes);
             }
+        }
+    }
+
+    private Browsers.KIND getBrowser(String agentInfo) {
+        if (agentInfo.contains("msie")) {
+            return Browsers.KIND.IE;
+        }
+        else if (agentInfo.contains("mozilla")){
+            return Browsers.KIND.MOZILLA;
+        }
+        else {
+            return Browsers.KIND.OTHER;
         }
     }
 }

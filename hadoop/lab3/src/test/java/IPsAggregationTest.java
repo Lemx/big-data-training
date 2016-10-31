@@ -13,9 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IPsAggregationTest {
-    MapReduceDriver<Object, Text, Text, LongWritable, Text, Text> mapReduceDriver;
+    MapReduceDriver<Object, Text, Text, LongWritable, Text, FloatLongWritablePair> mapReduceDriver;
     MapDriver<Object, Text, Text, LongWritable> mapDriver;
-    ReduceDriver<Text, LongWritable, Text, Text> reduceDriver;
+    ReduceDriver<Text, LongWritable, Text, FloatLongWritablePair> reduceDriver;
 
     @Before
     public void setUp() {
@@ -23,9 +23,9 @@ public class IPsAggregationTest {
         Reducer reducer = new IPsAggregationReducer();
         mapDriver = new MapDriver<Object, Text, Text, LongWritable>();
         mapDriver.setMapper(mapper);
-        reduceDriver = new ReduceDriver<Text, LongWritable, Text, Text>();
+        reduceDriver = new ReduceDriver<Text, LongWritable, Text, FloatLongWritablePair>();
         reduceDriver.setReducer(reducer);
-        mapReduceDriver = new MapReduceDriver<Object, Text, Text, LongWritable, Text, Text>();
+        mapReduceDriver = new MapReduceDriver<Object, Text, Text, LongWritable, Text, FloatLongWritablePair>();
         mapReduceDriver.setMapper(mapper);
         mapReduceDriver.setReducer(reducer);
     }
@@ -45,7 +45,7 @@ public class IPsAggregationTest {
         values.add(new LongWritable(1000));
         values.add(new LongWritable(100));
         reduceDriver.withInput(new Text("ip44"), values);
-        reduceDriver.withOutput(new Text("ip44"), new Text("550.00, 1100"));
+        reduceDriver.withOutput(new Text("ip44"), new FloatLongWritablePair(550.00f, 1100l));
         reduceDriver.runTest();
     }
 
@@ -56,8 +56,8 @@ public class IPsAggregationTest {
                         .withInput(new LongWritable(3), new Text("ip1 - - [24/Apr/2011:04:23:54 -0400] \"HEAD /sgi_indigo2/ HTTP/1.0\" 200 5000 \"-\" \"Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; GTB6.4)\""))
                         .withInput(new LongWritable(4), new Text("ip4 - - [24/Apr/2011:04:23:54 -0400] \"HEAD /sgi_indigo2/ HTTP/1.0\" 200 200 \"-\" \"Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; GTB6.4)\""));
 
-        mapReduceDriver.withOutput(new Text("ip1"), new Text("4000.00, 8000"))
-                        .withOutput(new Text("ip4"), new Text("200.00, 400"));
+        mapReduceDriver.withOutput(new Text("ip1"), new FloatLongWritablePair(4000.00f, 8000l))
+                        .withOutput(new Text("ip4"), new FloatLongWritablePair(200.00f, 400l));
         mapReduceDriver.runTest();
     }
 }

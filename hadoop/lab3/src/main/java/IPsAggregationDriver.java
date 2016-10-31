@@ -7,7 +7,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -24,6 +24,8 @@ public class IPsAggregationDriver extends Configured implements Tool {
 
         Configuration conf = getConf();
         conf.set("mapred.textoutputformat.separator", ","); // csv of sorts
+        conf.set("mapreduce.output.fileoutputformat.compress", "true");
+        conf.set("mapreduce.output.fileoutputformat compress.codec", "org.apache.hadoop.io.compress.SnappyCodec");
 
         Job job = Job.getInstance(conf);
 
@@ -36,20 +38,23 @@ public class IPsAggregationDriver extends Configured implements Tool {
         job.setJobName("IPsAggregation");
         job.setJarByClass(IPsAggregationDriver.class);
 
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(LongWritable.class);
 
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(LongWritable.class);
+        job.setOutputValueClass(FloatLongWritablePair.class);
 
         job.setMapperClass(IPsAggregationMapper.class);
-//        job.setCombinerClass(LongestWordReducer.class);
         job.setReducerClass(IPsAggregationReducer.class);
 
         job.setInputFormatClass(TextInputFormat.class);
-        job.setOutputFormatClass(TextOutputFormat.class);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
-        return job.waitForCompletion(true) ? 0: 1;
+        Boolean jobSuccessful =  job.waitForCompletion(true);
+
+        return jobSuccessful ? 0 : 1;
     }
 }
