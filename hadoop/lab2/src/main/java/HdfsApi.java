@@ -30,6 +30,7 @@ public class HdfsApi {
             while (line != null) {
                 String id = getId(line);
                 if (id.equals("null")) { // excluding lines with "null"-value id
+                    line = br.readLine();
                     continue;
                 }
                 if (entries.containsKey(id)) {
