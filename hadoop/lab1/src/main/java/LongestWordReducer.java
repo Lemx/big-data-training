@@ -14,9 +14,14 @@ public class LongestWordReducer
         this.setup(context);
 
         try {
-            while(context.nextKey());
-            this.reduce(context.getCurrentKey(), context.getValues(), context);
-            Iterator iter = context.getValues().iterator();
+            IntWritable key = null;
+            Iterable<Text> values = null;
+            while(context.nextKey()) {
+                key = context.getCurrentKey();
+                values = context.getValues();
+            }
+            this.reduce(key, values, context);
+            Iterator iter = values.iterator();
             if(iter instanceof ReduceContext.ValueIterator) {
                 ((ReduceContext.ValueIterator)iter).resetBackupStore();
             }
