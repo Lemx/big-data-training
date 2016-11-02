@@ -3,17 +3,25 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class HdfsApi {
 
     private static final HashMap<String, Integer> entries = new HashMap<>();
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args)
+            throws IOException, ExecutionException, InterruptedException {
 
         Configuration conf = new Configuration();
         conf.set("fs.defaultFS", "hdfs://localhost:9000/");
@@ -24,32 +32,26 @@ public class HdfsApi {
         FileSystem fs = FileSystem.get(conf);
         FileStatus[] statuses = fs.listStatus(inputDir);
 
+        ExecutorService es = Executors.newFixedThreadPool(statuses.length);
+
+        ArrayList<Future<Map<String, Integer>>> tasks = new ArrayList<>();
+
         for (FileStatus status : statuses) {
-            BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(status.getPath())));
-            String line = br.readLine();
-            while (line != null) {
-                String id = getId(line);
-                if (id.equals("null")) { // excluding lines with "null"-value id
-                    line = br.readLine();
-                    continue;
-                }
-                if (entries.containsKey(id)) {
-                    Integer currentCount = entries.get(id);
-                    entries.put(id, currentCount + 1);
-                } else {
-                    entries.put(id, 1);
-                }
-                line = br.readLine();
-            }
-            br.close();
+            Future<Map<String, Integer>> task = es.submit(new FileParser(status.getPath(), conf));
+            tasks.add(task);
         }
 
-        List<String> list = entries.entrySet()
-                                    .stream()
-                                    .sorted((k1, k2) -> -k1.getValue().compareTo(k2.getValue()))
-                                    .map(Map.Entry::getKey)
-                                    .limit(100)
-                                    .collect(Collectors.toList());
+        for (Future<Map<String, Integer>> task : tasks) {
+            for (Map.Entry<String, Integer> entry : task.get().entrySet()) {
+                entries.merge(entry.getKey(), entry.getValue(), (integer, integer2) -> integer + integer2);
+            }
+        }
+
+        List<Map.Entry<String, Integer>> list = entries.entrySet()
+                                                        .stream()
+                                                        .sorted((k1, k2) -> -k1.getValue().compareTo(k2.getValue()))
+                                                        .limit(100)
+                                                        .collect(Collectors.toList());
 
         if (fs.exists(outputFile)) {
             fs.delete(outputFile, true);
@@ -59,15 +61,12 @@ public class HdfsApi {
         fs.setReplication(outputFile, (short)1);
         BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fs.append(outputFile)));
 
-        for (String id : list) {
-            bw.write(id + "\n");
+        for (Map.Entry<String, Integer> e : list) {
+            bw.write(e.getKey() + "\t" + e.getValue() + "\n");
         }
         bw.close();
-    }
 
-    private static String getId(String entry) {
-        return entry.split("\t")[2];
+        System.exit(0);
     }
-
 }
 
