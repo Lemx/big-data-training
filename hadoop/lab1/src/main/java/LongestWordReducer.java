@@ -14,25 +14,12 @@ public class LongestWordReducer
         this.setup(context);
 
         try {
-            IntWritable key = null;
-            Iterable<Text> values = null;
-            while(context.nextKey()) {
-                key = context.getCurrentKey();
-                values = context.getValues();
-            }
-            this.reduce(key, values, context);
-            Iterator iter = values.iterator();
-            if(iter instanceof ReduceContext.ValueIterator) {
-                ((ReduceContext.ValueIterator)iter).resetBackupStore();
-            }
+            context.nextKey();
+            IntWritable key = context.getCurrentKey();
+            Text value = context.getCurrentValue();
+            context.write(key, value);
         } finally {
             this.cleanup(context);
         }
-    }
-
-    @Override
-    public void reduce(IntWritable key, Iterable<Text> values, Context context)
-            throws IOException, InterruptedException {
-        context.write(key, values.iterator().next()); // writing first longest word only
     }
 }

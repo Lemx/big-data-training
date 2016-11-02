@@ -40,6 +40,7 @@ public class LongestWordDriver extends Configured implements Tool {
         job.setMapperClass(LongestWordMapper.class);
         job.setCombinerClass(LongestWordReducer.class);
         job.setReducerClass(LongestWordReducer.class);
+        job.setSortComparatorClass(LongestWordComparator.class);
 
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
