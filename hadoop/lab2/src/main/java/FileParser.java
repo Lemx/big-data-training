@@ -9,8 +9,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class FileParser implements Callable<Map<String, Integer>> {
+public class FileParser implements Callable<Stream<Map.Entry<String, Integer>>> {
 
     private final Path path;
     private final Configuration configuration;
@@ -21,7 +22,7 @@ public class FileParser implements Callable<Map<String, Integer>> {
     }
 
     @Override
-    public Map<String, Integer> call()
+    public Stream<Map.Entry<String, Integer>> call()
             throws Exception {
         HashMap<String, Integer> entries = new HashMap<>();
         BufferedReader br = new BufferedReader(new InputStreamReader(FileSystem.get(configuration).open(path)));
@@ -42,11 +43,9 @@ public class FileParser implements Callable<Map<String, Integer>> {
         }
         br.close();
 
-        return entries.entrySet()
-                        .stream()
-                        .sorted((k1, k2) -> -k1.getValue().compareTo(k2.getValue()))
-                        .limit(100)
-                        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+        return entries
+                .entrySet()
+                .stream();
     }
 
     private static String getId(String entry) {
