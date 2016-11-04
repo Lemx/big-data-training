@@ -23,7 +23,7 @@ public class IPsAggregationDriver extends Configured implements Tool {
     public int run(String[] args) throws Exception {
 
         Configuration conf = getConf();
-        conf.set("mapred.textoutputformat.separator", ","); // csv of sorts
+        conf.set("mapred.textoutputformat.separator", ","); // csv of sorts (not needed with sequence file, obviously)
         conf.set("mapreduce.output.fileoutputformat.compress", "true");
         conf.set("mapreduce.output.fileoutputformat compress.codec", "org.apache.hadoop.io.compress.SnappyCodec");
 
