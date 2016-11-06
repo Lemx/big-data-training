@@ -19,13 +19,18 @@ public class HdfsApi {
     public static void main(String[] args)
             throws IOException, ExecutionException, InterruptedException {
 
+        if (args.length < 3) {
+            System.out.println("Usage: <hdfs-root-uri> <in-dir> <out-file>");
+            System.exit(2);
+        }
+
         Configuration conf = new Configuration();
-        conf.set("fs.defaultFS", "hdfs://localhost:9000/");
+        conf.set("fs.defaultFS", args[0]);
         conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
         conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
 
-        Path inputDir = new Path(args[0]);
-        Path outputFile = new Path(args[1]);
+        Path inputDir = new Path(args[1]);
+        Path outputFile = new Path(args[2]);
 
         FileSystem fs = FileSystem.get(conf);
         FileStatus[] statuses = fs.listStatus(inputDir);
