@@ -4,9 +4,9 @@ import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
-public class IPsAggregationReducer extends Reducer<Text, IntLongWritablePair, Text, FloatLongWritablePair> {
+public class IPsAggregationCombiner extends Reducer<Text, IntLongWritablePair, Text, IntLongWritablePair> {
 
-    private FloatLongWritablePair floatLongWritablePair = new FloatLongWritablePair();
+    private final IntLongWritablePair outputValue = new IntLongWritablePair();
 
     @Override
     protected void reduce(Text key, Iterable<IntLongWritablePair> values, Context context)
@@ -19,8 +19,8 @@ public class IPsAggregationReducer extends Reducer<Text, IntLongWritablePair, Te
             sum += val.getLong().get();
         }
 
-        floatLongWritablePair.set(sum / count.floatValue(), sum);
+        outputValue.set(count, sum);
 
-        context.write(key, floatLongWritablePair);
+        context.write(key, outputValue);
     }
 }

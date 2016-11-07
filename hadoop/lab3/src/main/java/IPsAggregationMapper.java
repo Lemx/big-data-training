@@ -11,10 +11,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-public class IPsAggregationMapper extends Mapper<Object, Text, Text, LongWritable> {
+public class IPsAggregationMapper extends Mapper<Object, Text, Text, IntLongWritablePair> {
 
     private Text outputKey = new Text();
-    private LongWritable outputValue = new LongWritable();
+    private IntLongWritablePair outputValue = new IntLongWritablePair();
 
     private static final String regex = "^(\\w+)\\s[\\w.-]+\\s[\\w.-]+\\s\\[.*\\]\\s\".*\"\\s\\d{3}\\s(\\d+|-)\\s\".*\"\\s\"(.*)\"$";
     private static final Pattern pattern = Pattern.compile(regex);
@@ -55,7 +55,7 @@ public class IPsAggregationMapper extends Mapper<Object, Text, Text, LongWritabl
                 context.getCounter(browser).increment(1);
                 bytesCount = Long.parseLong(bytesString);
                 outputKey.set(ipString);
-                outputValue.set(bytesCount);
+                outputValue.set(1, bytesCount);
                 context.write(outputKey, outputValue);
             }
         }

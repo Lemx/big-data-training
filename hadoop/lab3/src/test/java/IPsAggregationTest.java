@@ -14,8 +14,8 @@ import java.util.List;
 
 public class IPsAggregationTest {
     MapReduceDriver<Object, Text, Text, LongWritable, Text, FloatLongWritablePair> mapReduceDriver;
-    MapDriver<Object, Text, Text, LongWritable> mapDriver;
-    ReduceDriver<Text, LongWritable, Text, FloatLongWritablePair> reduceDriver;
+    MapDriver mapDriver;
+    ReduceDriver reduceDriver;
 
     @Before
     public void setUp() {
@@ -34,16 +34,16 @@ public class IPsAggregationTest {
     public void testMapper() throws IOException {
         mapDriver.withInput(new LongWritable(1), new Text("ip32 - - [24/Apr/2011:04:20:11 -0400] \"GET /sun_ss20/floppy.jpg HTTP/1.1\" 200 1000 \"http://host2/sun_ss5/\" \"Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.16) Gecko/20110319 Firefox/3.6.16\""))
                     .withInput(new LongWritable(1), new Text("ip31 - - [24/Apr/2011:04:20:11 -0400] \"GET /sun_ss20/floppy.jpg HTTP/1.1\" 200 1000 \"http://host2/sun_ss5/\" \"Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.16) Gecko/20110319 Firefox/3.6.16\""));
-        mapDriver.withOutput(new Text("ip32"), new LongWritable(1000))
-                    .withOutput(new Text("ip31"), new LongWritable(1000));
+        mapDriver.withOutput(new Text("ip32"), new IntLongWritablePair(1, 1000l))
+                    .withOutput(new Text("ip31"), new IntLongWritablePair(1, 1000l));
         mapDriver.runTest();
     }
 
     @Test
     public void testReducer() throws IOException {
-        List<LongWritable> values = new ArrayList<LongWritable>();
-        values.add(new LongWritable(1000));
-        values.add(new LongWritable(100));
+        List<IntLongWritablePair> values = new ArrayList<IntLongWritablePair>();
+        values.add(new IntLongWritablePair(1, 1000l));
+        values.add(new IntLongWritablePair(1, 100l));
         reduceDriver.withInput(new Text("ip44"), values);
         reduceDriver.withOutput(new Text("ip44"), new FloatLongWritablePair(550.00f, 1100l));
         reduceDriver.runTest();

@@ -1,7 +1,6 @@
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -39,13 +38,14 @@ public class IPsAggregationDriver extends Configured implements Tool {
         job.setJarByClass(IPsAggregationDriver.class);
 
         job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputValueClass(LongWritable.class);
+        job.setMapOutputValueClass(IntLongWritablePair.class);
 
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(FloatLongWritablePair.class);
 
         job.setMapperClass(IPsAggregationMapper.class);
         job.setReducerClass(IPsAggregationReducer.class);
+        job.setCombinerClass(IPsAggregationCombiner.class);
 
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
