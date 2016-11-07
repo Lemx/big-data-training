@@ -1,18 +1,16 @@
-import org.apache.hadoop.fs.*;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.HashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class JoinPartitioningMapper extends Mapper<Object, Text, Text, Text> {
 
-    private static final String regex = "^\\w+\\t\\w+\\t\\w\\t\\w*\\t(.*\\))\\t[\\w\\.\\*]+\\t\\w+\\t(\\w+)\\t\\w+\\t\\w+\\t\\w+\\t\\w+\\t\\w+\\t\\w+\\t\\w+\\t\\w+\\t\\w+\\t\\w+\\t\\w+\\t(\\w+)\\t\\w+\\t\\w+\\t\\w+\\t.*$";
-    private static final Pattern pattern = Pattern.compile(regex);
     private static final HashMap<String, String> Cities = new HashMap<String, String>();
 
 

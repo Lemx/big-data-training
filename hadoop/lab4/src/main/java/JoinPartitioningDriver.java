@@ -1,7 +1,5 @@
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -27,7 +25,6 @@ public class JoinPartitioningDriver extends Configured implements Tool {
     public int run(String[] args) throws Exception {
 
         Configuration conf = getConf();
-        conf.set("fs.defaultFS", "hdfs://localhost:9000/");
 
         Job job = Job.getInstance(conf);
 

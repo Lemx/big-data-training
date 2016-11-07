@@ -29,6 +29,6 @@ hdfs dfs -put ipinyou.contest.dataset/training3rd/*.txt ${inpath} && \
 hdfs dfs -put ipinyou.contest.dataset/${auxfile} ${auxpath} && \
 mvn clean && \
 mvn package && \
-hadoop jar target/lab4-1.0.jar /big-data-training/hadoop/lab4/input /big-data-training/hadoop/lab4/aux/city.en.txt /big-data-training/hadoop/lab4/output && \
+hadoop jar target/lab4-1.0.jar ${inpath} ${auxpath} ${outpath} && \
 echo results && \
 hdfs dfs -ls ${outpath}
