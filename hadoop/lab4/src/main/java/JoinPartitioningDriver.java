@@ -55,10 +55,7 @@ public class JoinPartitioningDriver extends Configured implements Tool {
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
-        FileSystem fs = FileSystem.get(conf);
-        FileStatus status = fs.getFileStatus(new Path(otherArgs[1]));
-        job.addCacheFile(status.getPath().toUri());
-
+        job.addCacheFile(new URI(otherArgs[1]));
 
         FileInputFormat.setInputDirRecursive(job, true);
         FileInputFormat.addInputPath(job, new Path(otherArgs[0]));

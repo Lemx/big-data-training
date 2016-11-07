@@ -8,24 +8,24 @@ outfile=`basename ${outpath}`
 
 curl -OJ http://bunwell.cs.ucl.ac.uk/ipinyou.contest.dataset.zip && \
 unzip ipinyou.contest.dataset.zip && \
-bzip2 ipinyou.contest.dataset/training2/bid.20130606.txt.bz2 && \
-bzip2 ipinyou.contest.dataset/training2/bid.20130607.txt.bz2 && \
-bzip2 ipinyou.contest.dataset/training2/bid.20130608.txt.bz2 && \
-bzip2 ipinyou.contest.dataset/training2/bid.20130609.txt.bz2 && \
-bzip2 ipinyou.contest.dataset/training2/bid.20130610.txt.bz2 && \
-bzip2 ipinyou.contest.dataset/training2/bid.20130611.txt.bz2 && \
-bzip2 ipinyou.contest.dataset/training2/bid.20130612.txt.bz2 && \
+bzip2 -dk ipinyou.contest.dataset/training2nd/bid.20130606.txt.bz2 && \
+bzip2 -dk ipinyou.contest.dataset/training2nd/bid.20130607.txt.bz2 && \
+bzip2 -dk ipinyou.contest.dataset/training2nd/bid.20130608.txt.bz2 && \
+bzip2 -dk ipinyou.contest.dataset/training2nd/bid.20130609.txt.bz2 && \
+bzip2 -dk ipinyou.contest.dataset/training2nd/bid.20130610.txt.bz2 && \
+bzip2 -dk ipinyou.contest.dataset/training2nd/bid.20130611.txt.bz2 && \
+bzip2 -dk ipinyou.contest.dataset/training2nd/bid.20130612.txt.bz2 && \
 hdfs dfs -rm -r ${inpath}
 hdfs dfs -rm -r ${outdir}
 hdfs dfs -mkdir -p ${inpath} && \
 hdfs dfs -mkdir -p ${outdir} && \
-hdfs dfs -put ipinyou.contest.dataset/training2/bid.20130606.txt ${inpath}/bid.20130606.txt && \
-hdfs dfs -put ipinyou.contest.dataset/training2/bid.20130607.txt ${inpath}/bid.20130607.txt && \
-hdfs dfs -put ipinyou.contest.dataset/training2/bid.20130608.txt ${inpath}/bid.20130608.txt && \
-hdfs dfs -put ipinyou.contest.dataset/training2/bid.20130609.txt ${inpath}/bid.20130609.txt && \
-hdfs dfs -put ipinyou.contest.dataset/training2/bid.20130610.txt ${inpath}/bid.20130610.txt && \
-hdfs dfs -put ipinyou.contest.dataset/training2/bid.20130611.txt ${inpath}/bid.20130611.txt && \
-hdfs dfs -put ipinyou.contest.dataset/training2/bid.20130612.txt ${inpath}/bid.20130612.txt && \
+hdfs dfs -put ipinyou.contest.dataset/training2nd/bid.20130606.txt ${inpath}/bid.20130606.txt && \
+hdfs dfs -put ipinyou.contest.dataset/training2nd/bid.20130607.txt ${inpath}/bid.20130607.txt && \
+hdfs dfs -put ipinyou.contest.dataset/training2nd/bid.20130608.txt ${inpath}/bid.20130608.txt && \
+hdfs dfs -put ipinyou.contest.dataset/training2nd/bid.20130609.txt ${inpath}/bid.20130609.txt && \
+hdfs dfs -put ipinyou.contest.dataset/training2nd/bid.20130610.txt ${inpath}/bid.20130610.txt && \
+hdfs dfs -put ipinyou.contest.dataset/training2nd/bid.20130611.txt ${inpath}/bid.20130611.txt && \
+hdfs dfs -put ipinyou.contest.dataset/training2nd/bid.20130612.txt ${inpath}/bid.20130612.txt && \
 mvn clean && \
 mvn package && \
 pip install virtualenv && \
