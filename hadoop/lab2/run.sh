@@ -35,4 +35,4 @@ source experiment/bin/activate && \
 pip install -r requirements.txt && \
 python runExperiment.py ${report} target/lab2-1.0.jar ${hadoopFs} ${inpath} ${outpath} && \
 echo report && \
-hdfs dfs -cat ${report}
+cat ${report}
