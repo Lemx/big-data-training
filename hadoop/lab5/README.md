@@ -1,6 +1,6 @@
 Execute run.sh.
 
-List of parameters:
+List of parameters:  
 1. address to connect to, default: localhost  
 2. port to listen on, default: 55552  
 3. path to JAR, default: target/lab5-1.0.jar  
