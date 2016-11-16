@@ -154,11 +154,12 @@ public class AppMaster {
         Priority appPriority = Records.newRecord(Priority.class);
         appPriority.setPriority(priority);
 
+        LOG.info("Requesting " + containers + " containers with " + cores + " cores and "
+                                                                    + memory + " MB each");
         for (int i = 0; i < containers; i++) {
             ContainerRequest containerReq = new ContainerRequest(capability, null, null, appPriority);
             rmClient.addContainerRequest(containerReq);
         }
-
 
         nmClient.init(conf);
         nmClient.start();

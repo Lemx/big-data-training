@@ -54,7 +54,6 @@ public class PiCalc {
             }
         }
         sum = sum.divide(num2power6, len, BigDecimal.ROUND_FLOOR);
-        String result = sum.toPlainString();
 
         System.out.println("Finished, trying to write result to file.");
 
@@ -79,7 +78,5 @@ public class PiCalc {
         {
             System.out.println(throwable.toString());
         }
-
-
     }
 }
