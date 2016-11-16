@@ -123,17 +123,12 @@ public class AppMaster {
     private static ModelAndView run(Request rq, Response rs)
             throws IOException, YarnException, InterruptedException {
         Integer memory = Integer.parseInt(rq.queryParams(MEMORY));
-        LOG.info("Running 1");
         Integer cores = Integer.parseInt(rq.queryParams(CORES));
-        LOG.info("Running 2");
+
         final Integer containers = Integer.parseInt(rq.queryParams(CONTAINERS));
-        LOG.info("Running 3");
         final Integer priority = Integer.parseInt(rq.queryParams(PRIORITY));
-        LOG.info("Running 4");
         final Integer iterations = Integer.parseInt(rq.queryParams(ITERATIONS));
-        LOG.info("Running 5");
         final Integer precision = Integer.parseInt(rq.queryParams(PRECISION));
-        LOG.info("Running 6");
 
         Integer maxMem = Integer.parseInt(environment.get(Constants.MAX_MEM));
         if (memory > maxMem) {

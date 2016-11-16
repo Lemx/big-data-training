@@ -17,6 +17,7 @@ hdfs dfs -mkdir -p /big-data-training/hadoop/lab5/output/ && \
 mvn clean && \
 mvn package && \
 hadoop jar ${path} ${amcores} ${ammem} ${path} ${port} && \
+sleep 1 && \
 curl "http://${address}:${port}/run?memory=${mem}&cores=${cores}&containers=${containers}&priority=${priority}&iterations=${iterations}&precision=${precision}" && \
 echo results && \
 hadoop fs -cat /big-data-training/hadoop/lab5/output/result_1.txt
