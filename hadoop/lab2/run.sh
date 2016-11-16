@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-hadoopFs=${1-hdfs://localhost:9000/}
+hadoopFs=${1-hdfs://localhost:8020/}
 inpath=/big-data-training/hadoop/lab2/input
 outpath=${2-/big-data-training/hadoop/lab2/output/bid_result.txt}
 report=${3-report.csv}
@@ -29,7 +29,7 @@ hdfs dfs -put ipinyou.contest.dataset/training2nd/bid.20130612.txt ${inpath}/bid
 mvn clean && \
 mvn package && \
 pip install virtualenv && \
-rm -r experiment && \
+rm -r experiment
 virtualenv experiment && \
 source experiment/bin/activate && \
 pip install -r requirements.txt && \
