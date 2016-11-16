@@ -109,7 +109,7 @@ public class Client {
         LOG.info("Submitting application");
         yarnClient.submitApplication(appContext);
 
-
+        LOG.info("Web UI will be listening on " + port + " port");
     }
 
     private static ApplicationSubmissionContext prepareContext(YarnClientApplication app) {
