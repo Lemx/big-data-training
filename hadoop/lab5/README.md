@@ -1,4 +1,4 @@
-Application creates application master that, in turn, allocates N containers with application to calculate Pi up to M digits in I iterations (more iterations == closer to true value).
+Application creates application master that, in turn, allocates N containers with application to calculate Pi up to M digits in I iterations (more iterations == closer to the true value).
 
 Just execute run.sh.
 
