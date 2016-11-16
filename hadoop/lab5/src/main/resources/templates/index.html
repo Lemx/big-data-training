@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<form action="/run" method="get">
+    <div>
+        Memory:
+        <input type="range" name="memory" id="memRange" min="128" th:max="${MAX_MEM}" step="128" oninput="this.form.memInput.value=this.value" value="128"/>
+        <input type="text" id="memInput" value="128" disabled="true"/>
+    </div>
+    <br/>
+    <div>
+        Cores:
+        <input type="range" name="cores" id="coresRange" min="1" th:max="${MAX_CORES}" step="1" oninput="this.form.coresInput.value=this.value" value="1"/>
+        <input type="text" id="coresInput" value="1" disabled="true"/>
+    </div>
+    <br/>
+    <div>
+        Containers:
+        <input type="range" name="containers" id="contRange" min="1" max="20" step="1" oninput="this.form.contInput.value=this.value" value="1"/>
+        <input type="text" id="contInput" value="1" disabled="true"/>
+    </div>
+    <br/>
+    <div>
+        Priority:
+        <input type="number" min="0" name="priority" value="0"/>
+    </div>
+    <div>
+        Iterations:
+        <input type="number" min="1" name="iterations" value="10000"/>
+        Precision:
+        <input type="number" min="1" name="precision" value="100000"/>
+    </div>
+    <br/>
+    <input type="submit">Submit</input>
+</form>
+
+</body>
+</html>
