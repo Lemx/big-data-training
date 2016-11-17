@@ -18,4 +18,3 @@ List of parameters:
 ####OR
 
 Build project with Maven, execute "hadoop jar target/lab5-1.0.jar 1 256 target/lab5-1.0.jar 55552" and open app_master_ip:55552 in your browser
-
