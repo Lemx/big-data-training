@@ -5,8 +5,8 @@
 <form action="/run" method="get">
     <div>
         Memory:
-        <input type="range" name="memory" id="memRange" min="128" th:max="${MAX_MEM}" step="128" oninput="this.form.memInput.value=this.value" value="128"/>
-        <input type="text" id="memInput" value="128" disabled="true"/>
+        <input type="range" name="memory" id="memRange" min="1024" th:max="${MAX_MEM}" step="1024" oninput="this.form.memInput.value=this.value" value="1024"/>
+        <input type="text" id="memInput" value="1024" disabled="true"/>
     </div>
     <br/>
     <div>
