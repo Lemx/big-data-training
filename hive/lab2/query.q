@@ -1,4 +1,4 @@
-USE lab1;
+USE lab2;
 
 SELECT c.desc AS airport, COUNT(*) AS flights, CONCAT_WS(', ', COLLECT_SET(a.city)) AS cities
 FROM carriers AS c

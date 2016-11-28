@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS lab1;
-USE lab1;
+CREATE DATABASE IF NOT EXISTS lab2;
+USE lab2;
 
 DROP TABLE IF EXISTS flights;
 
@@ -43,7 +43,7 @@ WITH SERDEPROPERTIES
 STORED AS TEXTFILE
 TBLPROPERTIES("skip.header.line.count"="1");
 
-LOAD DATA INPATH '/big-data-training/hive/lab1/input/2007.csv' OVERWRITE INTO TABLE flights;
+LOAD DATA INPATH '/big-data-training/hive/lab2/input/2007.csv' OVERWRITE INTO TABLE flights;
 
 
 
@@ -62,7 +62,7 @@ WITH SERDEPROPERTIES
 STORED AS TEXTFILE
 TBLPROPERTIES("skip.header.line.count"="1");
 
-LOAD DATA INPATH '/big-data-training/hive/lab1/input/carriers.csv' OVERWRITE INTO TABLE carriers;
+LOAD DATA INPATH '/big-data-training/hive/lab2/input/carriers.csv' OVERWRITE INTO TABLE carriers;
 
 
 
@@ -86,4 +86,4 @@ WITH SERDEPROPERTIES
 STORED AS TEXTFILE
 TBLPROPERTIES("skip.header.line.count"="1");
 
-LOAD DATA INPATH '/big-data-training/hive/lab1/input/airports.csv' OVERWRITE INTO TABLE airports;
+LOAD DATA INPATH '/big-data-training/hive/lab2/input/airports.csv' OVERWRITE INTO TABLE airports;
