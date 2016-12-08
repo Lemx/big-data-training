@@ -74,7 +74,7 @@ public class Benchmark {
         HiveClient hiveClient = new HiveClient("jdbc:hive2://localhost:10000", "default", "hive", "hive");
         hiveClient.executeQuery("CREATE DATABASE IF NOT EXISTS lab4");
 
-        for (Integer i = 15; i < Queries.createFlights.size() * fileFormats.size(); i++) {
+        for (Integer i = 0; i < Queries.createFlights.size() * fileFormats.size(); i++) {
 
             hiveClient = new HiveClient("jdbc:hive2://localhost:10000", "lab4", "hive", "hive");
 //            hiveClient.executeQuery(Queries.setDynamicPart);
