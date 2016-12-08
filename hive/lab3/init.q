@@ -3,7 +3,8 @@ USE lab3;
 
 DELETE jars;
 ADD JAR target/lab3-1.0.jar;
-CREATE temporary function parse_user_agent AS 'UAParserUDF';
+CREATE TEMPORARY FUNCTION parse_user_agent AS 'UAParserUDF';
+
 
 DROP TABLE IF EXISTS cities;
 

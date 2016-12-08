@@ -1,7 +1,8 @@
 USE lab1;
 
-SELECT c.desc AS Carrier, COUNT(*) AS Flights
+SELECT c.desc AS carrier, COUNT(*) AS flights
 FROM carriers AS c 
-INNER JOIN flights AS f
+JOIN flights AS f
 ON c.code = f.carrier
-GROUP BY c.desc;
+GROUP BY c.desc
+ORDER BY flights DESC;

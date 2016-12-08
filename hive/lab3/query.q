@@ -1,3 +1,5 @@
+USE lab3;
+
 SELECT c.name, d.device, d.countD, b.browser, b.countB, o.os, o.countO
 FROM cities AS c
 JOIN (SELECT sub2.city AS city, sub3.device AS device, sub2.mx AS countD
@@ -51,4 +53,4 @@ JOIN (SELECT sub2.city AS city, sub3.os AS os, sub2.mx AS countO
 		) AS sub3
 	ON sub2.mx = sub3.count AND sub2.city = sub3.city) AS o
 ON c.name = o.city
-SORT BY c.name;
+ORDER BY c.name;

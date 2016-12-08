@@ -1,6 +1,6 @@
 USE lab1;
 
-SELECT SUM(sub.cnt) AS NYC_Total
+SELECT SUM(sub.cnt) AS nyc_total
 FROM (
 	SELECT COUNT(*) AS cnt 
 	FROM airports AS a
