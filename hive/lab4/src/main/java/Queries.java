@@ -204,11 +204,15 @@ public class Queries {
                     "TBLPROPERTIES(\"skip.header.line.count\"=\"1\")"
     ));
 
-    public static final String createTableLike = "CREATE TABLE flights%s LIKE flights0 %s STORED AS %s";
+    public static final String createTableLike = "CREATE TABLE flights%s LIKE flights%s STORED AS %s";
 
     public static final String loadFlights = "LOAD DATA INPATH '/big-data-training/hive/lab4/2007.csv' OVERWRITE INTO TABLE flights0";
 
-    public static final String loadFlightsFromTable = "INSERT INTO TABLE flights%s %s select * FROM flights0";
+    public static final String loadFlightsFromTable = "INSERT INTO TABLE flights%s %s select year, day_of_month, " +
+            "day_of_week, dep_time, crs_dep_time, arr_time, crs_arr_time, carrier, flight_num, tail_num, act_el_time, " +
+            "crs_el_time, air_time, arr_delay, dep_delay, origin, dest, dist, taxi_in, taxi_out, cancelled, " +
+            "cancellation_code, diverted, carrier_dealy, weather_delay, nas_delay, sec_delay, late_aircraft_delay, " +
+            "month FROM flights0";
 
     public static final String createCarriers = "CREATE TABLE carriers (\n" +
             "  code STRING,\n" +
@@ -247,7 +251,7 @@ public class Queries {
 
     public static final String query1 = "SELECT c.desc AS carrier, COUNT(*) AS flights\n" +
             "FROM carriers AS c \n" +
-            "JOIN flights%s AS f\n" +
+            "JOIN flights%1$s AS f\n" +
             "ON c.code = f.carrier\n" +
             "GROUP BY c.desc\n" +
             "ORDER BY flights DESC";
@@ -256,13 +260,13 @@ public class Queries {
             "FROM (\n" +
             "\tSELECT COUNT(*) AS cnt \n" +
             "\tFROM airports AS a\n" +
-            "\tJOIN flights%s AS f\n" +
+            "\tJOIN flights%1$s AS f\n" +
             "\tON a.iata = f.origin\n" +
             "\tWHERE a.city = \"New York\" AND f.month = 6\n" +
             "\tUNION\n" +
             "\tSELECT COUNT(*) AS cnt\n" +
             "\tFROM airports AS a\n" +
-            "\tJOIN flights%s AS f\n" +
+            "\tJOIN flights%1$s AS f\n" +
             "\tON a.iata = f.dest\n" +
             "\tWHERE a.city = \"New York\" AND f.month = 6\n" +
             ") AS sub";
@@ -271,14 +275,14 @@ public class Queries {
             "FROM (\n" +
             "\tSELECT a.airport AS airport, COUNT(*) AS cnt\n" +
             "\tFROM airports AS a\n" +
-            "\tJOIN flights%s AS f\n" +
+            "\tJOIN flights%1$s AS f\n" +
             "\tON a.iata = f.origin\n" +
             "\tWHERE a.country = \"USA\" AND f.month IN (6, 7, 8)\n" +
             "\tGROUP BY a.airport\n" +
             "\tUNION\n" +
             "\tSELECT a.airport AS airport, COUNT(*) AS cnt\n" +
             "\tFROM airports AS a\n" +
-            "\tJOIN flights%s AS f\n" +
+            "\tJOIN flights%1$s AS f\n" +
             "\tON a.iata = f.dest\n" +
             "\tWHERE a.country = \"USA\" AND f.month IN (6, 7, 8)\n" +
             "\tGROUP BY a.airport\n" +
@@ -289,7 +293,7 @@ public class Queries {
 
     public static final String query4 = "SELECT c.desc AS carrier, COUNT(*) AS flights\n" +
             "FROM carriers AS c\n" +
-            "JOIN flights%s AS f\n" +
+            "JOIN flights%1$s AS f\n" +
             "ON c.code = f.carrier\n" +
             "GROUP BY c.desc\n" +
             "SORT BY flights DESC\n" +
@@ -305,6 +309,8 @@ public class Queries {
 
     public static final String setVectorizedReduce = "set hive.vectorized.execution.reduce.enabled = true";
 
-    public static final String createIndex = "CREATE INDEX fligts%s_dest_idx ON TABLE fligts%s(dest)\n" +
-            "AS 'org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler'";
+    public static final String createIndex = "CREATE INDEX flights%1$s_dest_idx ON TABLE flights%1$s(dest)\n" +
+            "AS 'org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler' WITH DEFERRED REBUILD";
+
+    public static final String rebuildIndex = "ALTER INDEX flights%1$s_dest_idx ON flights%1$s REBUILD";
 }

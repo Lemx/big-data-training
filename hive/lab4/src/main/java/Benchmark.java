@@ -33,11 +33,8 @@ public class Benchmark {
             "PARTITION (month)"
     ));
 
-    private static final ArrayList<ReportEntry> report = new ArrayList<>();
-
-
     public static void main(String[] args) throws SQLException, IOException {
-//        prepareFiles();
+        prepareFiles();
         prepareTables();
         List<ReportEntry> report = runExperiment();
         writeReport(report);
@@ -45,7 +42,7 @@ public class Benchmark {
 
     private static void writeReport(List<ReportEntry> report)
             throws IOException {
-        CSVWriter writer = new CSVWriter(new FileWriter("report.csv"), '\t');
+        CSVWriter writer = new CSVWriter(new FileWriter("report.csv"), ',');
 
         for (ReportEntry reportEntry : report) {
             String[] entries = new String[] { reportEntry.getTable(),
@@ -77,18 +74,18 @@ public class Benchmark {
         for (Integer i = 0; i < Queries.createFlights.size() * fileFormats.size(); i++) {
 
             hiveClient = new HiveClient("jdbc:hive2://localhost:10000", "lab4", "hive", "hive");
-//            hiveClient.executeQuery(Queries.setDynamicPart);
+
             String createTable = Queries.createFlights.get(i / Queries.createFlights.size());
             String fileFormat = fileFormats.get(i % fileFormats.size());
 
             if (i == 0) {
                 hiveClient.executeQuery(String.format(createTable, i, partitions.get(i / 5)));
-                hiveClient.executeQuery(String.format(Queries.loadFlights, i, i));
+                hiveClient.executeQuery(Queries.loadFlights);
             } else {
                 if (i % 5 == 0) {
                     hiveClient.executeQuery(String.format(createTable, i, partitions.get(i / 5)));
                 } else {
-                    hiveClient.executeQuery(String.format(Queries.createTableLike, i, partitions.get(i / 5), fileFormat));
+                    hiveClient.executeQuery(String.format(Queries.createTableLike, i, (5 * (i/5)), fileFormat));
                 }
                 hiveClient.executeQuery(String.format(Queries.loadFlightsFromTable, i, partitionsForInsert.get(i / 5)));
             }
@@ -105,7 +102,7 @@ public class Benchmark {
             throws SQLException {
         List<ReportEntry> report = new ArrayList<>();
 
-        for (Integer i = 1; i < 25; i++) {
+        for (Integer i = 0; i < Queries.createFlights.size() * fileFormats.size(); i++) {
             HiveClient hiveClient = new HiveClient("jdbc:hive2://localhost:10000", "lab4", "hive", "hive");
             String table = "flights" + i;
             Long size = hiveClient.getTableSize(table);
@@ -113,7 +110,8 @@ public class Benchmark {
             hiveClient.executeQuery(Queries.setMR);
             RunQueries(report, i, hiveClient, table, size);
 
-            hiveClient.executeQuery(Queries.createIndex);
+            hiveClient.executeQuery(String.format(Queries.createIndex, i));
+            hiveClient.executeQuery(String.format(Queries.rebuildIndex, i));
             RunQueries(report, i, hiveClient, table, size);
 
             hiveClient.executeQuery(Queries.setTez);
@@ -128,22 +126,43 @@ public class Benchmark {
         return report;
     }
 
-    private static void RunQueries(List<ReportEntry> report, Integer i, HiveClient hiveClient, String table, Long size)
-            throws SQLException {
-        Long time = runAndMeasureQuery(Queries.query1, hiveClient, i);
-        report.add(new ReportEntry(table, size, 1, time));
-        time = runAndMeasureQuery(Queries.query1, hiveClient, i);
-        report.add(new ReportEntry(table, size, 2, time));
-        time = runAndMeasureQuery(Queries.query1, hiveClient, i);
-        report.add(new ReportEntry(table, size, 3, time));
-        time = runAndMeasureQuery(Queries.query1, hiveClient, i);
-        report.add(new ReportEntry(table, size, 4, time));
+    private static void RunQueries(List<ReportEntry> report, Integer tableNumber,
+                                   HiveClient hiveClient, String table, Long size) {
+        Long time;
+
+        try {
+            time = runAndMeasureQuery(Queries.query1, hiveClient, tableNumber);
+            report.add(new ReportEntry(table, size, 1, time));
+        } catch (SQLException e) {
+            report.add(new ReportEntry("**FAILED** " + table, size, 1, -1l));
+        }
+
+        try {
+            time = runAndMeasureQuery(Queries.query2, hiveClient, tableNumber);
+            report.add(new ReportEntry(table, size, 2, time));
+        } catch (SQLException e) {
+            report.add(new ReportEntry("**FAILED** " + table, size, 2, -1l));
+        }
+
+        try {
+            time = runAndMeasureQuery(Queries.query3, hiveClient, tableNumber);
+            report.add(new ReportEntry(table, size, 3, time));
+        } catch (SQLException e) {
+            report.add(new ReportEntry("**FAILED** " + table, size, 3, -1l));
+        }
+
+        try {
+            time = runAndMeasureQuery(Queries.query4, hiveClient, tableNumber);
+            report.add(new ReportEntry(table, size, 4, time));
+        } catch (SQLException e) {
+            report.add(new ReportEntry("**FAILED** " + table, size, 4, -1l));
+        }
     }
 
     private static Long runAndMeasureQuery(String query, HiveClient hiveClient, Integer tableNumber)
             throws SQLException {
         Long startTime = System.currentTimeMillis();
-        hiveClient.executeQuery(String.format(Queries.query1, tableNumber));
+        hiveClient.executeQuery(String.format(query, tableNumber));
         Long endTime = System.currentTimeMillis();
         return (endTime - startTime) / 1000;
     }
