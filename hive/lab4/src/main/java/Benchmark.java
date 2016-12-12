@@ -1,11 +1,10 @@
 import au.com.bytecode.opencsv.CSVWriter;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class Benchmark {
 
@@ -33,22 +32,63 @@ public class Benchmark {
             "PARTITION (month)"
     ));
 
+    private static Map<String, String> tables = new HashMap<String, String>() {{
+        put("flights0", "NAIVE SCHEMA/TEXTFORMAT");
+        put("flights1", "NAIVE SCHEMA/AVRO");
+        put("flights2", "NAIVE SCHEMA/RCFILE");
+        put("flights3", "NAIVE SCHEMA/ORC");
+        put("flights4", "NAIVE SCHEMA/PARQUET");
+        put("flights5", "PARTITIONED BY month/TEXTFORMAT");
+        put("flights6", "PARTITIONED BY month/AVRO");
+        put("flights7", "PARTITIONED BY month/RCFILE");
+        put("flights8", "PARTITIONED BY month/ORC");
+        put("flights9", "PARTITIONED BY month/PARQUET");
+        put("flights10", "CLUSTERED BY origin/TEXTFORMAT");
+        put("flights11", "CLUSTERED BY origin/AVRO");
+        put("flights12", "CLUSTERED BY origin/RCFILE");
+        put("flights13", "CLUSTERED BY origin/ORC");
+        put("flights14", "CLUSTERED BY origin/PARQUET");
+        put("flights15", "CLUSTERED BY carrier/TEXTFORMAT");
+        put("flights16", "CLUSTERED BY carrier/AVRO");
+        put("flights17", "CLUSTERED BY carrier/RCFILE");
+        put("flights18", "CLUSTERED BY carrier/ORC");
+        put("flights19", "CLUSTERED BY carrier/PARQUET");
+        put("flights20", "PARTITIONED BY month CLUSTERED BY carrier/TEXTFORMAT");
+        put("flights21", "PARTITIONED BY month CLUSTERED BY carrier/AVRO");
+        put("flights22", "PARTITIONED BY month CLUSTERED BY carrier/RCFILE");
+        put("flights23", "PARTITIONED BY month CLUSTERED BY carrier/ORC");
+        put("flights24", "PARTITIONED BY month CLUSTERED BY carrier/PARQUET");
+    }};
+
     public static void main(String[] args) throws SQLException, IOException {
         prepareFiles();
         prepareTables();
-        List<ReportEntry> report = runExperiment();
-        writeReport(report);
+        prepareReport();
+        runExperiment();
     }
 
-    private static void writeReport(List<ReportEntry> report)
+    private static void prepareReport()
             throws IOException {
-        CSVWriter writer = new CSVWriter(new FileWriter("report.csv"), ',');
+        if (new File("report.csv").exists())
+            return;
+
+        CSVWriter writer = new CSVWriter(new FileWriter("report.csv"), ',', CSVWriter.NO_QUOTE_CHARACTER);
+        writer.writeNext(new String[] {"table", "format", "size (MB)", "query", "time (seconds)", "comment"});
+        writer.close();
+    }
+
+    private static void appendReport(List<ReportEntry> report)
+            throws IOException {
+        CSVWriter writer = new CSVWriter(new FileWriter("report.csv", true), ',', CSVWriter.NO_QUOTE_CHARACTER);
 
         for (ReportEntry reportEntry : report) {
-            String[] entries = new String[] { reportEntry.getTable(),
+            String[] tableAndFormat =  tables.get(reportEntry.getTable()).split("/");
+            String[] entries = new String[] { tableAndFormat[0],
+                                                tableAndFormat[1],
                                                 reportEntry.getSize().toString(),
                                                 reportEntry.getQueryNumber().toString(),
-                                                reportEntry.getExecutionTime().toString()};
+                                                reportEntry.getExecutionTime().toString(),
+                                                reportEntry.getComment()};
             writer.writeNext(entries);
         }
 
@@ -63,7 +103,6 @@ public class Benchmark {
                 "/big-data-training/hive/lab4/carriers.csv");
         FileHelper.copyToHdfs("/Users/anatoliyfetisov/Projects/big-data-training/hive/2007.csv",
                 "/big-data-training/hive/lab4/2007.csv");
-
     }
 
     private static void prepareTables()
@@ -98,64 +137,73 @@ public class Benchmark {
         hiveClient.executeQuery(Queries.loadAirports);
     }
 
-    private static List<ReportEntry> runExperiment()
-            throws SQLException {
-        List<ReportEntry> report = new ArrayList<>();
+    private static void runExperiment()
+            throws SQLException, IOException {
 
-        for (Integer i = 0; i < Queries.createFlights.size() * fileFormats.size(); i++) {
+        for (Integer i = 21; i < Queries.createFlights.size() * fileFormats.size(); i++) {
+            List<ReportEntry> report = new ArrayList<>();
             HiveClient hiveClient = new HiveClient("jdbc:hive2://localhost:10000", "lab4", "hive", "hive");
             String table = "flights" + i;
             Long size = hiveClient.getTableSize(table);
 
             hiveClient.executeQuery(Queries.setMR);
-            RunQueries(report, i, hiveClient, table, size);
+            RunQueries(report, i, hiveClient, table, size, "MR DEFAULT");
 
-            hiveClient.executeQuery(String.format(Queries.createIndex, i));
-            hiveClient.executeQuery(String.format(Queries.rebuildIndex, i));
-            RunQueries(report, i, hiveClient, table, size);
+            // sometimes index build fails with no apparent reason
+            try {
+                hiveClient.executeQuery(String.format(Queries.createIndex, i));
+                hiveClient.executeQuery(String.format(Queries.rebuildIndex, i));
+                RunQueries(report, i, hiveClient, table, size, "MR WITH INDEX");
+
+            } catch (SQLException e) {
+                for (int j = 1; j < 5; j++) {
+                    report.add(new ReportEntry(table, size, j, -1L, "FAILED INDEX BUILD"));
+                }
+            } finally {
+                hiveClient.executeQuery(String.format(Queries.dropIndex, i));
+            }
 
             hiveClient.executeQuery(Queries.setTez);
-            RunQueries(report, i, hiveClient, table, size);
+            RunQueries(report, i, hiveClient, table, size, "TEZ");
 
             hiveClient.executeQuery(Queries.setMR);
             hiveClient.executeQuery(Queries.setVectorized);
             hiveClient.executeQuery(Queries.setVectorizedReduce);
-            RunQueries(report, i, hiveClient, table, size);
+            RunQueries(report, i, hiveClient, table, size, "MR WITH VECTORIZATION");
+            appendReport(report);
         }
-
-        return report;
     }
 
     private static void RunQueries(List<ReportEntry> report, Integer tableNumber,
-                                   HiveClient hiveClient, String table, Long size) {
+                                   HiveClient hiveClient, String table, Long size, String comment) {
         Long time;
 
         try {
             time = runAndMeasureQuery(Queries.query1, hiveClient, tableNumber);
-            report.add(new ReportEntry(table, size, 1, time));
+            report.add(new ReportEntry(table, size, 1, time, comment));
         } catch (SQLException e) {
-            report.add(new ReportEntry("**FAILED** " + table, size, 1, -1l));
+            report.add(new ReportEntry(table, size, 1, -1L, "FAILED " + comment));
         }
 
         try {
             time = runAndMeasureQuery(Queries.query2, hiveClient, tableNumber);
-            report.add(new ReportEntry(table, size, 2, time));
+            report.add(new ReportEntry(table, size, 2, time, comment));
         } catch (SQLException e) {
-            report.add(new ReportEntry("**FAILED** " + table, size, 2, -1l));
+            report.add(new ReportEntry(table, size, 2, -1L, "FAILED " + comment));
         }
 
         try {
             time = runAndMeasureQuery(Queries.query3, hiveClient, tableNumber);
-            report.add(new ReportEntry(table, size, 3, time));
+            report.add(new ReportEntry(table, size, 3, time, comment));
         } catch (SQLException e) {
-            report.add(new ReportEntry("**FAILED** " + table, size, 3, -1l));
+            report.add(new ReportEntry(table, size, 3, -1L, "FAILED " + comment));
         }
 
         try {
             time = runAndMeasureQuery(Queries.query4, hiveClient, tableNumber);
-            report.add(new ReportEntry(table, size, 4, time));
+            report.add(new ReportEntry(table, size, 4, time, comment));
         } catch (SQLException e) {
-            report.add(new ReportEntry("**FAILED** " + table, size, 4, -1l));
+            report.add(new ReportEntry(table, size, 4, -1L, "FAILED " + comment));
         }
     }
 

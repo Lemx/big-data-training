@@ -299,8 +299,6 @@ public class Queries {
             "SORT BY flights DESC\n" +
             "LIMIT 1";
 
-//    public static final String setDynamicPart = "set hive.exec.dynamic.partition = true";
-
     public static final String setMR = "set hive.execution.engine=mr";
 
     public static final String setTez = "set hive.execution.engine=tez";
@@ -310,7 +308,9 @@ public class Queries {
     public static final String setVectorizedReduce = "set hive.vectorized.execution.reduce.enabled = true";
 
     public static final String createIndex = "CREATE INDEX flights%1$s_dest_idx ON TABLE flights%1$s(dest)\n" +
-            "AS 'org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler' WITH DEFERRED REBUILD";
+            "AS 'COMPACT' WITH DEFERRED REBUILD";
 
     public static final String rebuildIndex = "ALTER INDEX flights%1$s_dest_idx ON flights%1$s REBUILD";
+
+    public static final String dropIndex = "DROP INDEX flights%1$s_dest_idx ON flights%1$s";
 }
