@@ -144,7 +144,7 @@ public class Benchmark {
             List<ReportEntry> report = new ArrayList<>();
             HiveClient hiveClient = new HiveClient("jdbc:hive2://localhost:10000", "lab4", "hive", "hive");
             String table = "flights" + i;
-            Long size = hiveClient.getTableSize(table);
+            Long size = FileHelper.getTableSize(table);
 
             hiveClient.executeQuery(Queries.setMR);
             RunQueries(report, i, hiveClient, table, size, "MR DEFAULT");
