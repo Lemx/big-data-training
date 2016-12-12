@@ -1,4 +1,4 @@
-Main findings:
+Main findings:  
 — sometimes Hive fails to create index in place and asks to use DEFERRED REBUILD with following explicit REBUILD command, not very convenient  
 — indexing doesn't play well with ORC and PARQUET file formats (i.e. index rebuild fails with java.lang.OutOfMemoryError exception, likely to be environment-specific, though)  
 — indexing most of the has no observable effect on query execution time, index _should_ be used explicitly (not included in this report, but few ad hoc experiments support that)  
