@@ -7,4 +7,4 @@ Main findings:
 — TEZ has a little impact on execution speed when used with a file in TEXTFILE format, but shows tremendous performance gains with AVRO (up to 2 times), RCFILE/ORC (up to 20 times faster) and PARQUET (2-5 times faster)  
 — partitioning has a noticeable effect on execution speed of queries that rely on column that table was partitioned by (1.5-2 times faster)  
 — clustering has a clear negative impact on queries' performance, maybe schema or queries should be tuned for it to give positive effect  
-— file format has a great effect on table size (from 670 MB in TEXTFILE to 27 MB in ORC) and query execution speed (due to "built-in indexes" I guess)  
+— file format has a great effect on table size (from 670 MB in TEXTFILE to 84 MB in ORC) and query execution speed (due to "built-in indexes" I guess)  
