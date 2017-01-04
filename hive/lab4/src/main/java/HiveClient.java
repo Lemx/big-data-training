@@ -45,4 +45,10 @@ public class HiveClient {
             stmt.execute(query);
         }
     }
+
+    public void close()
+            throws SQLException {
+        if (connect())
+            connection.close();
+    }
 }

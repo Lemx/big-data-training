@@ -1,8 +1,11 @@
 import au.com.bytecode.opencsv.CSVWriter;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -33,34 +36,35 @@ public class Benchmark {
     ));
 
     private static Map<String, String> tables = new HashMap<String, String>() {{
-        put("flights0", "NAIVE SCHEMA/TEXTFORMAT");
+        put("flights0", "NAIVE SCHEMA/TEXTFILE");
         put("flights1", "NAIVE SCHEMA/AVRO");
         put("flights2", "NAIVE SCHEMA/RCFILE");
         put("flights3", "NAIVE SCHEMA/ORC");
         put("flights4", "NAIVE SCHEMA/PARQUET");
-        put("flights5", "PARTITIONED BY month/TEXTFORMAT");
+        put("flights5", "PARTITIONED BY month/TEXTFILE");
         put("flights6", "PARTITIONED BY month/AVRO");
         put("flights7", "PARTITIONED BY month/RCFILE");
         put("flights8", "PARTITIONED BY month/ORC");
         put("flights9", "PARTITIONED BY month/PARQUET");
-        put("flights10", "CLUSTERED BY origin/TEXTFORMAT");
+        put("flights10", "CLUSTERED BY origin/TEXTFILE");
         put("flights11", "CLUSTERED BY origin/AVRO");
         put("flights12", "CLUSTERED BY origin/RCFILE");
         put("flights13", "CLUSTERED BY origin/ORC");
         put("flights14", "CLUSTERED BY origin/PARQUET");
-        put("flights15", "CLUSTERED BY carrier/TEXTFORMAT");
+        put("flights15", "CLUSTERED BY carrier/TEXTFILE");
         put("flights16", "CLUSTERED BY carrier/AVRO");
         put("flights17", "CLUSTERED BY carrier/RCFILE");
         put("flights18", "CLUSTERED BY carrier/ORC");
         put("flights19", "CLUSTERED BY carrier/PARQUET");
-        put("flights20", "PARTITIONED BY month CLUSTERED BY carrier/TEXTFORMAT");
+        put("flights20", "PARTITIONED BY month CLUSTERED BY carrier/TEXTFILE");
         put("flights21", "PARTITIONED BY month CLUSTERED BY carrier/AVRO");
         put("flights22", "PARTITIONED BY month CLUSTERED BY carrier/RCFILE");
         put("flights23", "PARTITIONED BY month CLUSTERED BY carrier/ORC");
         put("flights24", "PARTITIONED BY month CLUSTERED BY carrier/PARQUET");
     }};
 
-    public static void main(String[] args) throws SQLException, IOException {
+    public static void main(String[] args)
+            throws SQLException, IOException {
         prepareFiles();
         prepareTables();
         prepareReport();
@@ -97,18 +101,17 @@ public class Benchmark {
 
     private static void prepareFiles()
             throws IOException {
-        FileHelper.copyToHdfs("/Users/anatoliyfetisov/Projects/big-data-training/hive/airports.csv",
-                "/big-data-training/hive/lab4/airports.csv");
-        FileHelper.copyToHdfs("/Users/anatoliyfetisov/Projects/big-data-training/hive/carriers.csv",
-                "/big-data-training/hive/lab4/carriers.csv");
-        FileHelper.copyToHdfs("/Users/anatoliyfetisov/Projects/big-data-training/hive/2007.csv",
-                "/big-data-training/hive/lab4/2007.csv");
+        FileFilter fileFilter = new WildcardFileFilter("*.csv");
+        for (File file : new File(Paths.get(".").toAbsolutePath().normalize().toString()).listFiles(fileFilter)) {
+            FileHelper.copyToHdfs(file.getAbsolutePath(), "/big-data-training/hive/lab4/" + file.getName());;
+        }
     }
 
     private static void prepareTables()
             throws SQLException {
         HiveClient hiveClient = new HiveClient("jdbc:hive2://localhost:10000", "default", "hive", "hive");
         hiveClient.executeQuery("CREATE DATABASE IF NOT EXISTS lab4");
+        hiveClient.close();
 
         for (Integer i = 0; i < Queries.createFlights.size() * fileFormats.size(); i++) {
 
@@ -128,6 +131,7 @@ public class Benchmark {
                 }
                 hiveClient.executeQuery(String.format(Queries.loadFlightsFromTable, i, partitionsForInsert.get(i / 5)));
             }
+            hiveClient.close();
         }
 
         hiveClient = new HiveClient("jdbc:hive2://localhost:10000", "lab4", "hive", "hive");
@@ -135,6 +139,7 @@ public class Benchmark {
         hiveClient.executeQuery(Queries.loadCarriers);
         hiveClient.executeQuery(Queries.createAirports);
         hiveClient.executeQuery(Queries.loadAirports);
+        hiveClient.close();
     }
 
     private static void runExperiment()
@@ -170,6 +175,7 @@ public class Benchmark {
             hiveClient.executeQuery(Queries.setVectorized);
             hiveClient.executeQuery(Queries.setVectorizedReduce);
             RunQueries(report, i, hiveClient, table, size, "MR WITH VECTORIZATION");
+            hiveClient.close();
             appendReport(report);
         }
     }
