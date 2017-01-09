@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 pathToSparkSubmit=$1
 inPath=${2-data/000000}
-outPath=${3-results}
+outPath=${3-result}
 
 if [ -z ${pathToSparkSubmit} ];
     then echo "path to spark-submit isn't set, quitting";
