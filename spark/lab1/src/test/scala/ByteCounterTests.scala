@@ -1,10 +1,8 @@
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.functions._
 import org.apache.spark.{SparkConf, SparkContext}
-import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers}
+import org.scalatest.{FlatSpec, Matchers}
 
-
-class ByteCounterTests extends FlatSpec with Matchers with BeforeAndAfter {
+class ByteCounterTests extends FlatSpec with Matchers {
 
   "A ByteCounter" should "convert RDD[String] into DataSet[LogLine]" in {
     val sparkConf = new SparkConf()
