@@ -76,8 +76,8 @@ class FlightsAnalyzerTests extends FlatSpec with BeforeAndAfter with Matchers {
                                       ("bar", 2, true)))
                 .toDF("key", "int", "bool")
 
-    val joined = FlightsAnalyzer.filter(df, Seq(("int", Seq(1, 2)), ("bool", true)))
+    val filtered = FlightsAnalyzer.filter(df, Seq(("int", Seq(1, 2)), ("bool", true)))
 
-    joined.collect should be (expected.collect)
+    filtered.collect should be (expected.collect)
   }
 }
