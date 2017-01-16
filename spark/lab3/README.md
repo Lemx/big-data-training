@@ -8,3 +8,6 @@ Execute run.sh with parameters:
 - (optional) Objects.csv location  
 - (optional) Target.csv location
 - (optional) path to picture with ROC plot
+
+####Warning
+execution will take considerable time
