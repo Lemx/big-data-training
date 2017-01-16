@@ -90,7 +90,6 @@ object ResponseAnalyzer {
 
     val conf = new SparkConf()
       .setAppName("lab2")
-        .setMaster("local[*]")
     val sc = new SparkContext(conf)
     val sql = new SQLContext(sc)
 
