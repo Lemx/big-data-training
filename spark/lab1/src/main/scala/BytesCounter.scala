@@ -13,7 +13,6 @@ object BytesCounter {
     val logFile = args(0)
     val conf = new SparkConf()
                     .setAppName("lab1")
-      .setMaster("local[*]")
 
     val sc = new SparkContext(conf)
 
