@@ -102,8 +102,8 @@ object PacketReceiver {
 
         val df = hive.createDataFrame(rdd)
         df.registerTempTable("stats")
-        val smTrgPart = hive.sql("INSERT INTO TABLE statistics_by_hour SELECT * FROM stats")
-        smTrgPart.write.mode(SaveMode.Append).saveAsTable("statistics_by_hour")
+        val stats = hive.sql("INSERT INTO TABLE statistics_by_hour SELECT * FROM stats")
+        stats.write.mode(SaveMode.Append).saveAsTable("statistics_by_hour")
           })
 
     ssc.start()
