@@ -94,7 +94,7 @@ object PacketReceiver {
           part.foreach(x =>
             kafkaSink.value.send("alerts", getStringForKafka(x._1, x._3, x._2 / mb, limit, period)))))
 
-    packets.reduceByKeyAndWindow((a, b) => a + b, (a, b) => a - b,  Seconds(10), Seconds(10))
+    packets.reduceByKeyAndWindow((a, b) => a + b, (a, b) => a - b,  Minutes(60), Minutes(60))
       .map(x => (new Timestamp(DateTime.now.getMillis), x._1, (1.0 * x._2) / mb, (1.0 * x._2 / mb) / 60))
       .foreachRDD(rdd => {
         val hive = new HiveContext(rdd.sparkContext)
