@@ -3,7 +3,9 @@ import java.util
 import java.util.UUID
 
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
+import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.hive.HiveContext
+import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.receiver.Receiver
 import org.apache.spark.streaming.{Minutes, Seconds, StreamingContext}
@@ -92,18 +94,17 @@ object PacketReceiver {
           part.foreach(x =>
             kafkaSink.value.send("alerts", getStringForKafka(x._1, x._3, x._2 / mb, limit, period)))))
 
-    packets.reduceByKeyAndWindow((a, b) => a + b, (a, b) => a - b,  Minutes(60), Minutes(60))
+    packets.reduceByKeyAndWindow((a, b) => a + b, (a, b) => a - b,  Seconds(10), Seconds(10))
+      .map(x => (new Timestamp(DateTime.now.getMillis), x._1, (1.0 * x._2) / mb, (1.0 * x._2 / mb) / 60))
       .foreachRDD(rdd => {
         val hive = new HiveContext(rdd.sparkContext)
-        rdd.foreachPartition(part => {
-          part.foreach(x => {
-            val timestamp = new Timestamp(DateTime.now.getMillis)
-            val data = hive.sql(s"SELECT $timestamp AS time, " +
-              s"${x._1} AS hostIp, " +
-              s"${x._2 / mb} AS trafficConsumed, " +
-              s"${(x._2 / mb) / 60} AS averageSpeed")
-            data.write.mode("append").saveAsTable("statistics_by_hour")
-          })})})
+        hive.sql("USE lab4")
+
+        val df = hive.createDataFrame(rdd)
+        df.registerTempTable("stats")
+        val smTrgPart = hive.sql("INSERT INTO TABLE statistics_by_hour SELECT * FROM stats")
+        smTrgPart.write.mode(SaveMode.Append).saveAsTable("statistics_by_hour")
+          })
 
     ssc.start()
     ssc.awaitTermination()
