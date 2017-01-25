@@ -7,6 +7,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, LocalFileSystem, Path}
 import org.apache.hadoop.hdfs.DistributedFileSystem
 import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.dstream.ReceiverInputDStream
@@ -19,6 +20,7 @@ import org.pcap4j.core.{PacketListener, PcapHandle, Pcaps}
 import org.pcap4j.packet.{IpV4Packet, Packet}
 
 import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
 
 case class Settings(ip: String, monitoringType: Int, limit: Double, period: Long)
 
@@ -33,48 +35,77 @@ object PacketReceiver {
     (1, (a, b) => (1.0 * a) / b),
     (2, (a, _) => a)
   )
-  val eventsCache = mutable.HashMap.empty[Int, mutable.HashMap[String, EventType.Value]]
+  val eventsCache = mutable.HashMap((1, mutable.HashMap.empty[String, EventType.Value]),
+                                    ((2, mutable.HashMap.empty[String, EventType.Value])))
 
   def main(args: Array[String]): Unit = {
+
+    val Array(interface, metastore, kafka, fs) = args.length match {
+      case 4 => args
+      case (v) if v > 4 => {
+        println("extra args found, using first four")
+        args.slice(0, 4)
+      }
+      case (v) if v < 4 => {
+        println("not all args are set, falling back to defaults")
+        Array("en0", "thrift://localhost:9083", "localhost:9092", "hdfs://localhost:8020/")
+      }
+    }
 
     val sparkConf = new SparkConf()
       .setAppName("lab4")
       .setMaster("local[*]")
-    System.setProperty("hive.metastore.uris", "thrift://localhost:9083") // not sure about that, but it works
+    System.setProperty("hive.metastore.uris", metastore) // not sure about that, but it works
     val sc = new SparkContext(sparkConf)
     val hiveContext = new HiveContext(sc)
     import hiveContext.implicits._
 
     hiveContext.sql("USE lab4")
     val settings = hiveContext.sql("SELECT * FROM settings").cache
-    val thresholdSettings = settings.select($"type" === 1)
-                                    .take(1)
-                                    .map(x => Settings(x.getAs[String](0), 1, x.getAs[Double](2), x.getAs[Long](3)))
-                                    .take(1)(0)
-    val limitSettings = settings.select($"type" === 2)
-                                .take(1)
-                                .map(x => Settings(x.getAs[String](0), 2, x.getAs[Double](2), x.getAs[Long](3)))
-                                .take(1)(0)
+    val thresholdSettingsRow = settings.where($"type" === 1)
+    val limitSettingsRow = settings.where($"type" === 2)
 
-    val interfaceName = args.length match {
-      case 0 => "en0"
-      case 1 => args(0)
-    }
+    val thresholdSettings = extractSettings(thresholdSettingsRow, Settings(null, 1, 5, 10))
+    val limitSettings = extractSettings(limitSettingsRow, Settings(null, 2, 30, 60))
+
     val ssc = new StreamingContext(sc, Seconds(1))
     ssc.checkpoint("checkpoints")
 
-    val kafkaBootstrap = "localhost:9092"
-    val kafkaConfig = getKafkaConfig(kafkaBootstrap)
+    val kafkaConfig = getKafkaConfig(kafka)
     val kafkaSink = sc.broadcast(KafkaSink(kafkaConfig))
 
-    val packets = ssc.receiverStream(new PacketReceiver(interfaceName))
+    val packets = ssc.receiverStream(new PacketReceiver(interface))
 
     monitorPackets(thresholdSettings, packets, kafkaSink.value)
     monitorPackets(limitSettings, packets, kafkaSink.value)
-    storePacketsStats(packets)
+    storePacketsStats(packets, fs)
 
     ssc.start()
     ssc.awaitTermination()
+  }
+
+  private def extractSettings(settingsRow: DataFrame, default: Settings): Settings = {
+    val thresholdSettings = settingsRow.count match {
+      case 1 => {
+        val raw = settingsRow.take(1)(0)
+        val ip = Try(raw.getAs[String](0)) match {
+          case Success(v) => v
+          case Failure(_) => default.ip
+        }
+        val monitoringType = default.monitoringType
+        val limit = Try(raw.getAs[Double](2)) match {
+          case Success(v) => v
+          case Failure(_) => default.limit
+        }
+        val period = Try(raw.getAs[Long](3)) match {
+          case Success(v) => v
+          case Failure(_) => default.period
+        }
+        Settings(ip, monitoringType, limit, period)
+      }
+      case _ => default
+    }
+    thresholdSettings
   }
 
   private def getKafkaConfig(kafkaBootstrap: String): util.HashMap[String, Object] = {
@@ -94,7 +125,7 @@ object PacketReceiver {
       .foreachRDD(rdd =>
         rdd.foreachPartition(part =>
           part.foreach(x =>
-            sink.send("alerts", getStringForKafka(x._1, x._3, x._2 / mb, settings.limit, settings.period)))))
+            sink.send("alerts", getStringForKafka(UUID.randomUUID.toString, x._1, x._3, x._2 / mb, settings.limit, settings.period)))))
   }
 
   def getEventType(value: Double, limit: Double, monitoringType: Int): EventType.Value = {
@@ -105,7 +136,9 @@ object PacketReceiver {
   }
 
   def checkIfChanged(monitoringType:Int, ip: String, eventType: EventType.Value): Boolean = {
-    if (eventsCache.contains(monitoringType) && eventsCache(monitoringType).contains(ip) && eventsCache(monitoringType)(ip) == eventType) {
+    if (eventsCache.contains(monitoringType)
+        && eventsCache(monitoringType).contains(ip)
+        && eventsCache(monitoringType)(ip) == eventType) {
       false
     }
     else {
@@ -114,19 +147,19 @@ object PacketReceiver {
     }
   }
 
-  def getStringForKafka(ip: String, eventType: EventType.Value, value: Double, limit: Double, period: Long): String = {
-    List(UUID.randomUUID, DateTime.now, ip, eventType, value, limit, period).mkString("\t")
+  def getStringForKafka(id: String, ip: String, eventType: EventType.Value, value: Double, limit: Double, period: Long): String = {
+    List(id, DateTime.now, ip, eventType, value, limit, period).mkString("\t")
   }
 
-  private def storePacketsStats(packets: ReceiverInputDStream[(String, Long)]): Unit = {
+  private def storePacketsStats(packets: ReceiverInputDStream[(String, Long)], defaultFS: String): Unit = {
     packets.reduceByKeyAndWindow((a, b) => a + b, (a, b) => a - b, Minutes(60), Minutes(60))
       .map(x => (new Timestamp(DateTime.now.getMillis), x._1, (1.0 * x._2) / mb, (1.0 * x._2 / mb) / 60))
-      .map(x => s"${x._1}, ${x._2}, + ${x._3}, ${x._4}${System.getProperty("line.separator")}")
+      .map(x => s"${x._1}, ${x._2}, ${x._3}, ${x._4}${System.getProperty("line.separator")}")
       .foreachRDD(rdd =>
         rdd.foreachPartition(part => {
 
           val conf = new Configuration()
-          conf.set("fs.defaultFS", "hdfs://localhost:8020/")
+          conf.set("fs.defaultFS", defaultFS)
           conf.set("fs.hdfs.impl", classOf[DistributedFileSystem].getName)
           conf.set("fs.file.impl", classOf[LocalFileSystem].getName)
 
