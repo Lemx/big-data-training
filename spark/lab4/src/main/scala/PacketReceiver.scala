@@ -1,7 +1,10 @@
+import java.io.{BufferedWriter, OutputStreamWriter}
 import java.sql.Timestamp
 import java.util
 import java.util.UUID
 
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.hive.HiveContext
@@ -16,8 +19,6 @@ import org.pcap4j.core.{PacketListener, PcapHandle, Pcaps}
 import org.pcap4j.packet.{IpV4Packet, Packet}
 
 import scala.collection.mutable
-
-case class PacketInfo(ip: String, length: Long)
 
 object EventType extends Enumeration {
   val ThresholdExceeded, ThresholdNorm, LimitExceeded, LimitNorm = Value
@@ -55,6 +56,7 @@ object PacketReceiver {
 
     val sparkConf = new SparkConf()
       .setAppName("lab4")
+      .setMaster("local[*]")
     System.setProperty("hive.metastore.uris", "thrift://localhost:9083") // not sure about that, but it works
     val sc = new SparkContext(sparkConf)
     val hiveContext = new HiveContext(sc)
@@ -74,37 +76,46 @@ object PacketReceiver {
       case 1 => args(0)
     }
     val ssc = new StreamingContext(sc, Seconds(1))
-    val kafkaConfig = new util.HashMap[String, Object]
-    kafkaConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-    kafkaConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
-    kafkaConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
-
-    val kafkaSink = sc.broadcast(KafkaSink(kafkaConfig))
     ssc.checkpoint("checkpoints")
+
+//    val kafkaConfig = new util.HashMap[String, Object]
+//    kafkaConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+//    kafkaConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+//    kafkaConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+
+//    val kafkaSink = sc.broadcast(KafkaSink(kafkaConfig))
 
     val packets = ssc.receiverStream(new PacketReceiver(interfaceName))
 
-    packets.reduceByKeyAndWindow((a, b) => a + b, (a, b) => a - b, Seconds(period), Seconds(1))
-      .filter(x => x._1 == hostIp || hostIp == null)
-      .map(x => (x._1, aggregationByType(monitoringType)(x._2, period)))
-      .map(x => (x._1, x._2, getEventType(x._2, limit * mb, monitoringType)))
-      .filter(x => checkIfChanged(x._1, x._3))
-      .foreachRDD(rdd =>
-        rdd.foreachPartition(part =>
-          part.foreach(x =>
-            kafkaSink.value.send("alerts", getStringForKafka(x._1, x._3, x._2 / mb, limit, period)))))
+//    packets.reduceByKeyAndWindow((a, b) => a + b, (a, b) => a - b, Seconds(period), Seconds(1))
+//      .filter(x => x._1 == hostIp || hostIp == null)
+//      .map(x => (x._1, aggregationByType(monitoringType)(x._2, period)))
+//      .map(x => (x._1, x._2, getEventType(x._2, limit * mb, monitoringType)))
+//      .filter(x => checkIfChanged(x._1, x._3))
+//      .foreachRDD(rdd =>
+//        rdd.foreachPartition(part =>
+//          part.foreach(x =>
+//            kafkaSink.value.send("alerts", getStringForKafka(x._1, x._3, x._2 / mb, limit, period)))))
 
     packets.reduceByKeyAndWindow((a, b) => a + b, (a, b) => a - b,  Minutes(60), Minutes(60))
       .map(x => (new Timestamp(DateTime.now.getMillis), x._1, (1.0 * x._2) / mb, (1.0 * x._2 / mb) / 60))
-      .foreachRDD(rdd => {
-        val hive = new HiveContext(rdd.sparkContext)
-        hive.sql("USE lab4")
+      .map(x => x._1 + "," + x._2 + "," + x._3 + "," + x._4 + System.getProperty("line.separator"))
+      .foreachRDD(rdd =>
+        rdd.foreachPartition(part => {
 
-        val df = hive.createDataFrame(rdd)
-        df.registerTempTable("stats")
-        val smTrgPart = hive.sql("INSERT INTO TABLE statistics_by_hour SELECT * FROM stats")
-        smTrgPart.write.mode(SaveMode.Append).saveAsTable("statistics_by_hour")
-          })
+          val conf = new Configuration()
+          conf.set("fs.defaultFS", "hdfs://localhost:8020/")
+          conf.set("fs.hdfs.impl", classOf[org.apache.hadoop.hdfs.DistributedFileSystem].getName)
+          conf.set("fs.file.impl", classOf[org.apache.hadoop.fs.LocalFileSystem].getName)
+
+          val fs = FileSystem.get(conf)
+          val outputStream = fs.create(new Path("/big-data-training/spark/lab4/stats/" + UUID.randomUUID))
+          val br = new BufferedWriter(new OutputStreamWriter(outputStream))
+          part.foreach(x => br.write(x))
+          br.close()
+          fs.close()
+        })
+      )
 
     ssc.start()
     ssc.awaitTermination()
