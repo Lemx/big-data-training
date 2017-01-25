@@ -13,4 +13,5 @@ libraryDependencies += "org.pcap4j" % "pcap4j-packetfactory-static" % "1.7.0"
 libraryDependencies += "org.pcap4j" % "pcap4j-core" % "1.7.0"
 libraryDependencies += "org.apache.hadoop" % "hadoop-hdfs" % "2.7.3"
 libraryDependencies += "org.apache.hadoop" % "hadoop-common" % "2.7.3" excludeAll ExclusionRule(organization = "javax.servlet")
+libraryDependencies += "mysql" % "mysql-connector-java" % "6.0.5"
 
