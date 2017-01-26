@@ -54,7 +54,6 @@ object PacketReceiver {
 
     val sparkConf = new SparkConf()
       .setAppName("lab4")
-      .setMaster("local[*]")
     System.setProperty("hive.metastore.uris", metastore) // not sure about that, but it works
     val sc = new SparkContext(sparkConf)
     val hiveContext = new HiveContext(sc)
