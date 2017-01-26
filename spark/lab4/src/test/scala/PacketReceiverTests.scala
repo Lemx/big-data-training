@@ -10,7 +10,6 @@ class PacketReceiverTests extends FlatSpec with BeforeAndAfter with Matchers {
   var sc: SparkContext = _
 
   before {
-    System.setProperty("HADOOP_HOME", "D:\\hadoop")
     val sparkConf = new SparkConf()
       .setMaster("local[*]")
       .setAppName("test-lab4")
