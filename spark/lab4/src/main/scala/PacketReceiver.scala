@@ -7,7 +7,8 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, LocalFileSystem, Path}
 import org.apache.hadoop.hdfs.DistributedFileSystem
 import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.dstream.ReceiverInputDStream
@@ -36,7 +37,7 @@ object PacketReceiver {
     (2, (a, _) => a)
   )
   val eventsCache = mutable.HashMap((1, mutable.HashMap.empty[String, EventType.Value]),
-                                    ((2, mutable.HashMap.empty[String, EventType.Value])))
+                                    (2, mutable.HashMap.empty[String, EventType.Value]))
 
   def main(args: Array[String]): Unit = {
 
@@ -61,11 +62,11 @@ object PacketReceiver {
 
     hiveContext.sql("USE lab4")
     val settings = hiveContext.sql("SELECT * FROM settings").cache
-    val thresholdSettingsRow = settings.where($"type" === 1)
-    val limitSettingsRow = settings.where($"type" === 2)
+    val thresholdSettingsRow = settings.where($"type" === 1).rdd
+    val limitSettingsRow = settings.where($"type" === 2).rdd
 
-    val thresholdSettings = extractSettings(thresholdSettingsRow, Settings(null, 1, 5, 10))
-    val limitSettings = extractSettings(limitSettingsRow, Settings(null, 2, 30, 60))
+    val thresholdSettings = extractSettings(thresholdSettingsRow, Settings(null, 1, 5.0, 10L))
+    val limitSettings = extractSettings(limitSettingsRow, Settings(null, 2, 30.0, 60L))
 
     val ssc = new StreamingContext(sc, Seconds(1))
     ssc.checkpoint("checkpoints")
@@ -83,15 +84,18 @@ object PacketReceiver {
     ssc.awaitTermination()
   }
 
-  private def extractSettings(settingsRow: DataFrame, default: Settings): Settings = {
+  def extractSettings(settingsRow: RDD[Row], default: Settings): Settings = {
     val thresholdSettings = settingsRow.count match {
       case 1 => {
         val raw = settingsRow.take(1)(0)
         val ip = Try(raw.getAs[String](0)) match {
-          case Success(v) => v
+          case Success(v) => if (v == null || v.matches("""(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})""")) v else default.ip
           case Failure(_) => default.ip
         }
-        val monitoringType = default.monitoringType
+        val monitoringType = Try(raw.getAs[Int](1)) match {
+          case Success(v) if v == 1 || v == 2 => v
+          case _ => default.monitoringType
+        }
         val limit = Try(raw.getAs[Double](2)) match {
           case Success(v) => v
           case Failure(_) => default.limit
@@ -115,7 +119,7 @@ object PacketReceiver {
     kafkaConfig
   }
 
-  def monitorPackets(settings: Settings, packets: ReceiverInputDStream[(String, Long)], sink: KafkaSink): Unit = {
+  private def monitorPackets(settings: Settings, packets: ReceiverInputDStream[(String, Long)], sink: KafkaSink): Unit = {
     packets.reduceByKeyAndWindow((a, b) => a + b, (a, b) => a - b, Seconds(settings.period), Seconds(1))
       .filter(x => x._1 == settings.ip || settings.ip == null)
       .map(x => (x._1, aggregationByType(settings.monitoringType)(x._2, settings.period)))
@@ -124,7 +128,8 @@ object PacketReceiver {
       .foreachRDD(rdd =>
         rdd.foreachPartition(part =>
           part.foreach(x =>
-            sink.send("alerts", getStringForKafka(UUID.randomUUID.toString, x._1, x._3, x._2 / mb, settings.limit, settings.period)))))
+            sink.send("alerts", getStringForKafka(UUID.randomUUID.toString, DateTime.now,
+                        x._1, x._3, x._2 / mb, settings.limit, settings.period)))))
   }
 
   def getEventType(value: Double, limit: Double, monitoringType: Int): EventType.Value = {
@@ -146,8 +151,8 @@ object PacketReceiver {
     }
   }
 
-  def getStringForKafka(id: String, ip: String, eventType: EventType.Value, value: Double, limit: Double, period: Long): String = {
-    List(id, DateTime.now, ip, eventType, value, limit, period).mkString("\t")
+  def getStringForKafka(id: String, dateTime: DateTime, ip: String, eventType: EventType.Value, value: Double, limit: Double, period: Long): String = {
+    List(id, dateTime, ip, eventType, value, limit, period).mkString("\t")
   }
 
   private def storePacketsStats(packets: ReceiverInputDStream[(String, Long)], defaultFS: String): Unit = {
